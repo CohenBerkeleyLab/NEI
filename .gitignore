@@ -1,0 +1,6 @@
+# Ignore namelist files in the v03 and v04 folders
+# as these are probably either links or user-specific
+# in any case. An example namelist is left in the 
+# wpsread folder for users to test with.
+src/v03/namelist*
+src/v04/namelist*

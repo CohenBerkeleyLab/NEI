@@ -36,7 +36,7 @@
 !WRF:PACKAGE:IO
 
      MODULE EMISSIONS_WPS_V4
-
+     USE read_namelist_opts
 !
 ! Version 2.0 of the emissions standard initialization routine. This
 !  program is for use with the chemistry code in WRF V3
@@ -85,6 +85,7 @@
 !  WSP                    wind speed at level height (m) specified by REFWZ
 !-----------------------------------------------------------------------
 !
+!
 ! - Input emissions data dimensions.  This is fixed for the 4-km grid
 !    that the NEI-05 emissions is located on.
 !  Note the grid numbering convention.  The lower left corner is numbered (1,1)
@@ -94,8 +95,8 @@
 !
 ! - Output emissions data dimensions (user specified)
 !
-     PARAMETER(IX2=73,JX2=60,KX=19,KP=KX+1)
-!
+     PARAMETER(KX=19,KP=KX+1)
+     INTEGER :: IX2, JX2
 !
 ! Number of release points
 !
@@ -127,14 +128,14 @@
      INTEGER                                  ::  IEMAX, JEMAX
      INTEGER, DIMENSION(NAMFILE2)             ::  MWT
 
-     REAL, DIMENSION(IX,JX)     :: EMT
-     REAL, DIMENSION(IPOINT)    :: EMP
-     REAL, DIMENSION(IX2,JX2)   :: EM2D
-     REAL, DIMENSION(24,KWIN)     :: WSPD
+     REAL, DIMENSION(IX,JX)             :: EMT
+     REAL, DIMENSION(IPOINT)            :: EMP
+     REAL, DIMENSION(:, :), ALLOCATABLE :: EM2D
+     REAL, DIMENSION(24,KWIN)           :: WSPD
 
-     REAL, DIMENSION(IX2,KX,JX2,NRADM)   :: EM3RD
-     REAL, DIMENSION(IX2,KX,JX2)         :: EM3RS
-     REAL, DIMENSION(NAMFILE2)           :: FAC
+     REAL, DIMENSION(:, :, :, :), ALLOCATABLE :: EM3RD
+     REAL, DIMENSION(:, :, :), ALLOCATABLE    :: EM3RS
+     REAL, DIMENSION(NAMFILE2)                :: FAC
 !
 !     Output grid map information
 !
@@ -168,34 +169,24 @@
 !  MAXHR                  Number of hours the emissions data is to be generated for (e.g., maxhr=3 for 3 hours of data)
 !
      INTEGER    :: hemi = +1  ! SAM 7/9/08 - Only northern hemisphere Lambert Conf. and Polar Stereograph tested
-! Following for WRF/Chem 60 km domain (Lambert Conformal), no nest, eastern U.S. (November, 2003)
-!     INTEGER    :: iproj = 1
-!     REAL       :: rekm = 6371.
-!     REAL       :: dx = 60.E3
-!     REAL       :: xlatc =  40.00
-!     REAL       :: xlonc = -115.00
-!     REAL       :: clat1 = 45.00
-!     REAL       :: clat2 = 35.00
-!     INTEGER    :: inest1 = 0
-!     REAL       :: xnesstr = 1.00
-!     REAL       :: ynesstr = 1.00
-!     REAL       :: dxbigdo = 60.E3
-!     INTEGER    :: il = 134
-!     INTEGER    :: jl = 110
-! Following for WRF/Chem 60 km domain (Polar Stereographic), no nest, continental U.S. (July 2008)
-     INTEGER    :: iproj = 1
+
+! JLL 2016-07-12: rewritten to use the read in WPS namelist in the AL2RADM2
+! subroutine
+     INTEGER    :: iproj
+     REAL       :: dx
+     REAL       :: dxbigdo
+     REAL       :: xlatc
+     REAL       :: xlonc
+     REAL       :: clat1
+     REAL       :: clat2
+     INTEGER    :: inest1
+     REAL       :: xnesstr
+     REAL       :: ynesstr
+     INTEGER    :: il
+     INTEGER    :: jl
+    
+! JLL 2016-07-12: These should be set here 
      REAL       :: rekm = 6371.
-     REAL       :: dx = 30.E3
-     REAL       :: dxbigdo = 30.E3
-     REAL       :: xlatc = 34.83
-     REAL       :: xlonc = -81.03
-     REAL       :: clat1 = 34.83
-     REAL       :: clat2 = 34.83
-     INTEGER    :: inest1 = 0
-     REAL       :: xnesstr = 1.00
-     REAL       :: ynesstr = 1.00
-     INTEGER    :: il = 74
-     INTEGER    :: jl = 61
      INTEGER    :: starthr = 01
      INTEGER    :: maxhr = 24
      INTEGER    :: endhr 
@@ -410,7 +401,7 @@
      REAL, DIMENSION(IX,JX)         :: XLAT,XLON
      REAL, DIMENSION(NAL2DO,NRADM)  ::  TRANAL2R
 
-     INTEGER                        :: STATUS,SYSTEM
+     INTEGER                        :: STATUS,SYSTEM,allocstat
 
      CHARACTER (len=128)            :: HRDIR
 !
@@ -436,6 +427,8 @@
      REAL        ::  EMAX, XLTMX, XLNMX
      REAL        ::  DHM, DHMX, TOP, BOT, ZDIF, FRC
 
+! JLL 2016-07-12
+     LOGICAL     :: debugbool = .TRUE.
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !     IF ( dx .LE. 10000. .and. IFRACGR .EQ. 0 ) then
@@ -443,6 +436,72 @@
 !       WRITE(*,*) ' Set IFRACGR = 1 '
 !       STOP 999
 !     ENDIF
+
+! JLL 2016-07-12: Use this to read the WPS namelist file, which must be linked to this folder
+!
+     TYPE(wps_config) :: config_flags
+     CALL read_namelist(config_flags)
+
+! JLL 2016-07-12: rewritten to use the read in WPS namelist 
+    IF ( config_flags%map_proj .EQ. "'lambert'" ) THEN
+         iproj = 1
+         xlatc =  config_flags%ref_lat
+         xlonc = config_flags%ref_lon
+         clat1 = config_flags%truelat1
+         clat2 = config_flags%truelat2
+     ELSE
+         iproj = 2
+         xlatc =  config_flags%ref_lat
+         xlonc = config_flags%ref_lon
+         clat1 = config_flags%truelat1
+         clat2 = config_flags%truelat2
+     ENDIF
+
+     dx = config_flags%dx
+     dxbigdo = config_flags%dx * REAL(config_flags%parent_grid_ratio)
+     inest1 = config_flags%isnest
+     xnesstr = REAL(config_flags%i_parent_start)
+     ynesstr = REAL(config_flags%j_parent_start)
+     il = config_flags%e_we
+     jl = config_flags%e_sn
+     IX2 = config_flags%e_we - 1
+     JX2 = config_flags%e_sn - 1
+
+     IF ( debugbool ) THEN
+        WRITE(*, '(A, I8)') "iproj = ", iproj
+        WRITE(*, '(A, F12.2)') "dx = ", dx
+        WRITE(*, '(A, F12.2)') "dxbigdo = ", dxbigdo
+        WRITE(*, '(A, F12.2)') "xlatc = ", xlatc
+        WRITE(*, '(A, F12.2)') "xlonc = ", xlonc
+        WRITE(*, '(A, F12.2)') "clat1 = ", clat1
+        WRITE(*, '(A, F12.2)') "clat2 = ", clat2
+        WRITE(*, '(A, I8)') "inest1 = ", inest1
+        WRITE(*, '(A, F12.2)') "xnesstr = ", xnesstr
+        WRITE(*, '(A, F12.2)') "ynesstr = ", ynesstr
+        WRITE(*, '(A, I8)') "il = ", il
+        WRITE(*, '(A, I8)') "jl = ", jl
+        WRITE(*, '(A, I8)') "ix2 = ", IX2
+        WRITE(*, '(A, I8)') "jx2 = ", JX2
+     ENDIF
+
+     ALLOCATE( EM2D(IX2, JX2), STAT=allocstat )
+     IF (allocstat .NE. 0) THEN
+        WRITE(*,'(A)') "Not enough memory to allocate EM2D"
+     ENDIF
+     
+     ALLOCATE( EM3RD(IX2, KX, JX2, NRADM), STAT=allocstat )
+     IF (allocstat .NE. 0) THEN
+        WRITE(*,'(A)') "Not enough memory to allocate E3RD"
+     ENDIF
+     ALLOCATE( EM3RS(IX2, KX, JX2), STAT=allocstat )
+     IF (allocstat .NE. 0) THEN
+        WRITE(*,'(A)') "Not enough memory to allocate EM3RS"
+     ENDIF
+
+     WRITE(*, '(A)') "Shape of EM2D, EM3RD, and EM3RS"
+     WRITE(*,*) SHAPE(EM2D)
+     WRITE(*,*) SHAPE(EM3RD)
+     WRITE(*,*) SHAPE(EM3RS)
 
 ! Open output files, 7 = print and log, 19 = unformatted wrf output
      OPEN(19,FILE='wrfem_00to12Z',FORM='UNFORMATTED')
@@ -567,9 +626,7 @@
 ! apportion 4km grid emissions into wrf-27km grids by simple grid dumping
           DO I=1,IX
           DO J=1,JX
-            WRITE(*,*) "Calling llxy with lat, lon = ", XLAT(I,J), XLON(I,J)
             CALL LLXY(XLAT(I,J),XLON(I,J),XX,YY)
-            WRITE(*,*) "llxy returned = ", XX, YY
 !            WRITE(LDEV,*)'i,j,lat,lon,x,y= ',I,J,XLAT(I,J),XLON(I,J),XX,YY
             IF(XX .GE. 1 .AND. XX.LE.IX2 .AND. YY.GE.1 .AND. YY.LE.JX2) THEN
               I2=INT(XX)
@@ -845,13 +902,12 @@
 !     Calculate total and max
 !     EMAX=-1.E25
 !     ETOT=0.
-     WRITE(*,*) "EMSUM ETOT, EMAX = ", ETOT, EMAX
+
 
      DO I=1,IX2
      DO J=1,JX2
        ETOT=ETOT+EM2D(I,J)
        IF(EM2D(I,J).GT.EMAX)THEN
-         WRITE(*,*) "EMSUM EM2D(i,j) = ", I,J,EM2D(I,J)
          EMAX=EM2D(I,J)
          IEMAX=I
          JEMAX=J
@@ -859,7 +915,6 @@
      ENDDO
      ENDDO
 
-     WRITE(*,*) "EMSUM EMAX at end = ", EMAX
 
      RETURN
      END SUBROUTINE  EMSUM
@@ -870,6 +925,7 @@
 !     Calculate total and max
 !     EMAX=-1.E25
 !     ETOT=0.
+     
      DO I=1,IX2
      DO J=1,JX2
      DO K=1,KX
@@ -943,9 +999,6 @@
 !
 !-----------------------------------------------------------------------
 !
-     WRITE(*,'(A, F12.2, F12.2)') "MAPCF XI, XJ = ", XI, XJ
-     WRITE(*,'(A, F12.2, F12.2, F12.2, F12.2, I4)') "MAPCF CLAT1, CLAT2, XLATC, XLONC, IPROJ = ", CLAT1, CLAT2, XLATC, XLONC, IPROJ
-
      XN = 0.
 !  9/5/03 Modified for more general Lambert Conformal with 2 standard parallels,CLAT1,CLAT2
      PSI1=CLAT1
@@ -1060,8 +1113,7 @@
         XLAT = POLE-PSX
         ENDIF
      ENDIF
-
-    WRITE(*,'(A, F12.2, F12.2, F12.2, F12.2, F12.2)') "MAPCF XLAT, POLE, PSI1, CEL1, CEL2 = ", XLAT, POLE, PSI1, CEL1, CEL2
+     
 !
 !     CALCULATIONS FOR MERCATOR LAT, LONG AND MAP SCALES...
 !
@@ -1142,7 +1194,6 @@
            RR =  CELL
            C2=REKM/TAN(PSI1)
 !     WRITE(*,*)' CLAT1=CLAT2,IPROJ=1'
-           write(*,*) "llxy cell, rr, c2 = ", cell, rr, c2
            ELSE
            CELL = REKM*SIN(PSI1)/XN
            CELL2 = CELL/(TAN(PSI1/2.)**XN)
@@ -1163,7 +1214,6 @@
      YY = RR*SIN(XXL)+C2
      XI = FLOAT(IL+1)/2.+XX/DS
      YJ = FLOAT(JL+1)/2.+YY/DS
-     write(*,*) "llxy xi, yj, il, jl, ds = ", xi, yj, il, jl, ds
      IF(INEST1.EQ.1)THEN
      XI=1.+(XI-XNESSTR)*DXBIGDO/DX
      YJ=1.+(YJ-YNESSTR)*DXBIGDO/DX
