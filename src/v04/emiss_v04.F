@@ -467,48 +467,48 @@
      IX2 = config_flags%e_we - 1
      JX2 = config_flags%e_sn - 1
 
+! Open output file, 17 = output log
+     LDEV=17
+     OPEN(LDEV,FILE='al2radm2.outp')
+     
      IF ( debugbool ) THEN
-        WRITE(*, '(A, I8)') "iproj = ", iproj
-        WRITE(*, '(A, F12.2)') "dx = ", dx
-        WRITE(*, '(A, F12.2)') "dxbigdo = ", dxbigdo
-        WRITE(*, '(A, F12.2)') "xlatc = ", xlatc
-        WRITE(*, '(A, F12.2)') "xlonc = ", xlonc
-        WRITE(*, '(A, F12.2)') "clat1 = ", clat1
-        WRITE(*, '(A, F12.2)') "clat2 = ", clat2
-        WRITE(*, '(A, I8)') "inest1 = ", inest1
-        WRITE(*, '(A, F12.2)') "xnesstr = ", xnesstr
-        WRITE(*, '(A, F12.2)') "ynesstr = ", ynesstr
-        WRITE(*, '(A, I8)') "il = ", il
-        WRITE(*, '(A, I8)') "jl = ", jl
-        WRITE(*, '(A, I8)') "ix2 = ", IX2
-        WRITE(*, '(A, I8)') "jx2 = ", JX2
+        WRITE(LDEV, '(A)') "------------ Namelist options ------------"
+        WRITE(LDEV, '(A, I8)') "iproj = ", iproj
+        WRITE(LDEV, '(A, F12.2)') "dx = ", dx
+        WRITE(LDEV, '(A, F12.2)') "dxbigdo = ", dxbigdo
+        WRITE(LDEV, '(A, F12.2)') "xlatc = ", xlatc
+        WRITE(LDEV, '(A, F12.2)') "xlonc = ", xlonc
+        WRITE(LDEV, '(A, F12.2)') "clat1 = ", clat1
+        WRITE(LDEV, '(A, F12.2)') "clat2 = ", clat2
+        WRITE(LDEV, '(A, I8)') "inest1 = ", inest1
+        WRITE(LDEV, '(A, F12.2)') "xnesstr = ", xnesstr
+        WRITE(LDEV, '(A, F12.2)') "ynesstr = ", ynesstr
+        WRITE(LDEV, '(A, I8)') "il = ", il
+        WRITE(LDEV, '(A, I8)') "jl = ", jl
+        WRITE(LDEV, '(A, I8)') "ix2 = ", IX2
+        WRITE(LDEV, '(A, I8)') "jx2 = ", JX2
+        WRITE(LDEV, '(A)') ""
      ENDIF
 
      ALLOCATE( EM2D(IX2, JX2), STAT=allocstat )
      IF (allocstat .NE. 0) THEN
-        WRITE(*,'(A)') "Not enough memory to allocate EM2D"
+        WRITE(LDEV,'(A)') "Not enough memory to allocate EM2D"
      ENDIF
      
      ALLOCATE( EM3RD(IX2, KX, JX2, NRADM), STAT=allocstat )
      IF (allocstat .NE. 0) THEN
-        WRITE(*,'(A)') "Not enough memory to allocate E3RD"
+        WRITE(LDEV,'(A)') "Not enough memory to allocate E3RD"
      ENDIF
      ALLOCATE( EM3RS(IX2, KX, JX2), STAT=allocstat )
      IF (allocstat .NE. 0) THEN
-        WRITE(*,'(A)') "Not enough memory to allocate EM3RS"
+        WRITE(LDEV,'(A)') "Not enough memory to allocate EM3RS"
      ENDIF
 
-     WRITE(*, '(A)') "Shape of EM2D, EM3RD, and EM3RS"
-     WRITE(*,*) SHAPE(EM2D)
-     WRITE(*,*) SHAPE(EM3RD)
-     WRITE(*,*) SHAPE(EM3RS)
 
-! Open output files, 7 = print and log, 19 = unformatted wrf output
+! Open output files 19 = unformatted wrf output
      OPEN(19,FILE='wrfem_00to12Z',FORM='UNFORMATTED')
      WRITE(19)NRADM
      WRITE(19)ename
-     LDEV=17
-     OPEN(LDEV,FILE='al2radm2.outp')
      L1P=LNBLNK(POINDIR)
      WRITE(LDEV,*)'Geometric grid fraction flag = ',IFRACGR
 !

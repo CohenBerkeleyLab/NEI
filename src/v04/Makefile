@@ -1,7 +1,15 @@
-FC=ifort
+FC=mpif90
+
+ifeq ($(FC),mpif90)
+    EMISSOPTS="-axSSE3 -free -convert big_endian"
+else ifeq ($(FC),pgf90)
+    EMISSOPTS="-w -byteswapio -Mfree -Mlfs"
+else
+    $(error The only tested fortran compilers for emiss_v04.F are mpif90 and pgf90. Please make the FC variable one of these)
+endif
 
 exe : emiss_v04.F set_namelist_opts.o
-	mpif90 -axSSE3 -free -convert big_endian set_namelist_opts.o emiss_v04.F -o emiss_v04.exe
+	$(FC) -axSSE3 -free -convert big_endian set_namelist_opts.o emiss_v04.F -o emiss_v04.exe
 	cp -u namelist.wps namelist.wps.backup
 	ln -sf ../../../WPS/namelist.wps
 
