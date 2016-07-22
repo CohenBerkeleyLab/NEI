@@ -4,3 +4,15 @@
 # wpsread folder for users to test with.
 src/v03/namelist*
 src/v04/namelist*
+
+# Ignore data folders
+2005
+2011
+
+# Ignore compiled and runtime objects
+**/al2radm2.outp
+**/scratem
+**/wrfem*
+*.o
+*.mod
+*.exe
