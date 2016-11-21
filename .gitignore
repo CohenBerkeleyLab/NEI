@@ -1,0 +1,18 @@
+# Ignore namelist files in the v03 and v04 folders
+# as these are probably either links or user-specific
+# in any case. An example namelist is left in the 
+# wpsread folder for users to test with.
+src/v03/namelist*
+src/v04/namelist*
+
+# Ignore data folders
+2005
+2011
+
+# Ignore compiled and runtime objects
+**/al2radm2.outp
+**/scratem
+**/wrfem*
+*.o
+*.mod
+*.exe

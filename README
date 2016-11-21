@@ -1,0 +1,28 @@
+Utility update to the emission gridding code
+
+Josh Laughner
+13 July 2016
+
+The base EPA-provided emiss_v0x.F program has been modified to read the
+geographic variables directly from the WPS namelist. This is both more
+convenient (does not require recompiling the program to change those variables)
+and in theory should cut down on mistakes, as it both ensures that the proper
+WPS variables are mapped to the proper EMISS variables and checks for common
+mistakes in WPS settings that EMISS is not built to handle.
+
+Both the utilities for NEI 2005 and NEI 2011 are provided here in src/v03 and
+src/v04 respectively. Each folder contains a Makefile, so the utility can be
+compiled by issuing the "make" command in the respective folder. You may need to
+modify the compiler used in those makefiles.
+
+This version of the program makes certain assumptions about the locations of the
+input data and the WPS namelist. First, it assumes that the input data is
+contained in folders 2005 and 2011 in THIS directory. These can be links if the
+data is located elsewhere, but if one issues the command "ls 2005" or "ls 2011"
+from this directory, the directories area4k, grid_loc, and point should be listed.
+
+Further, it assumes that the WPS namelist file is contained in the same folder as 
+the emiss_v0x.exe executable. The makefile will attempt to link this, assuming
+that it is located in a WPS folder that is a sibling to THIS folder (containing
+the README file), that is, it is contained in ../WPS from here, or ../../../WPS
+from the src/v03 or src/v04 folders.
