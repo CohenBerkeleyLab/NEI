@@ -54,6 +54,9 @@
 !or
 !
 !  mpif90 -axP -free -convert big_endian emiss_v03_wps.F
+!Azimeh : To compile this file:
+!1)mpif90 -free -convert big_endian -o emiss_v03.exe emiss_v03.F or
+!2)ifort -O2 -FR -convert big_endian -o emiss_v04.exe emiss_v04.F -I /opt/netcdf/include -L/opt/netcdf/lib -lnetcdf 
 !-----------------------------------------------------------------------
 !
 !  Fields to set before running:
@@ -94,7 +97,7 @@
 !
 ! - Output emissions data dimensions (user specified)
 !
-     PARAMETER(IX2=73,JX2=60,KX=19,KP=KX+1)
+        PARAMETER(IX2=290,JX2=200,KX=19,KP=KX+1)
 !
 !
 ! Number of release points
@@ -105,8 +108,12 @@
 ! Number of Primary (IPRIM), VOC (IVOC), and PM2.5 (IPM25) species in NEI-11 emission files
 !
      PARAMETER(IPRIM=7, IVOC=50, IPM25=19)
-     PARAMETER(NAL2DO=56, NRADM=31, NAMFILE2=64)
-! 
+!     PARAMETER(NAL2DO=56, NRADM=31, NAMFILE2=64)
+!Azimeh NRADM=30 for emiss_v03, but for emiss_v04 is 31 beacuse ofCH4, in this version we increse it to 31+14 (to have it for RACM2)
+     PARAMETER(NAL2DO=56, NRADM=45, NAMFILE2=62)
+!Azimeh note: NAMFILE2=62 is 8 more that NAMFILE2 in emiss_v03
+!Azimeh note NAL2DO=56 is 8 more that NAL2DO=48 in emiss_v03 (it has HC35)
+
 ! Number of grid levels, and interval levels for wind climatology data used in vertical momentum lift calcs.
 ! 
      PARAMETER(KWIN=20,KWINP=KWIN+1)
@@ -183,32 +190,47 @@
 !     INTEGER    :: il = 134
 !     INTEGER    :: jl = 110
 ! Following for WRF/Chem 60 km domain (Polar Stereographic), no nest, continental U.S. (July 2008)
-     INTEGER    :: iproj = 1
+!Azimeh : It should be changed based on namelist.input
+     INTEGER    :: iproj = 1 
      REAL       :: rekm = 6371.
-     REAL       :: dx = 30.E3
-     REAL       :: dxbigdo = 30.E3
-     REAL       :: xlatc = 34.83
-     REAL       :: xlonc = -81.03
-     REAL       :: clat1 = 34.83
-     REAL       :: clat2 = 34.83
+     REAL       :: dx = 12.E3
+     REAL       :: dxbigdo = 12.E3
+     REAL       :: xlatc =  35.903
+     REAL       :: xlonc = -87.249
+     REAL       :: clat1 = 45.00
+     REAL       :: clat2 = 33.00
      INTEGER    :: inest1 = 0
      REAL       :: xnesstr = 1.00
      REAL       :: ynesstr = 1.00
-     INTEGER    :: il = 74
-     INTEGER    :: jl = 61
+     INTEGER    :: il = 291
+     INTEGER    :: jl = 201
      INTEGER    :: starthr = 01
      INTEGER    :: maxhr = 24
      INTEGER    :: endhr 
 !
 ! Names of emission variables
-!
-     DATA ENAME /    &
-      'e_so2 ','e_no  ','e_ald ','e_hcho','e_ora2',                     &
-      'e_nh3 ','e_hc3 ','e_hc5 ','e_hc8 ',                              &
-      'e_eth ','e_co  ','e_ol2 ','e_olt ','e_oli ','e_tol ','e_xyl ',   &
-      'e_ket ','e_csl ','e_iso ','e_ch4','e_pm25i','e_pm25j',           &
-      'e_so4i','e_so4j','e_no3i','e_no3j','e_orgi','e_orgj','e_eci',    &
-      'e_ecj','e_pm10'/
+!Azimeh:warning: emiss_v04.F compare to emiss_v03.F has extra variable that is e_ch4: should change chem/convert_emiss.F in accordingly: see
+!this file
+!     DATA ENAME /    &
+!      'e_so2 ','e_no  ','e_ald ','e_hcho','e_ora2',                     &
+!      'e_nh3 ','e_hc3 ','e_hc5 ','e_hc8 ',                              &
+!      'e_eth ','e_co  ','e_ol2 ','e_olt ','e_oli ','e_tol ','e_xyl ',   &
+!      'e_ket ','e_csl ','e_iso ','e_ch4','e_pm25i','e_pm25j',           &
+!      'e_so4i','e_so4j','e_no3i','e_no3j','e_orgi','e_orgj','e_eci',    &
+!      'e_ecj','e_pm10'/
+!Azimeh updated for RACM
+    DATA ENAME /    &
+     'e_so2 ','e_no  ','e_ald ','e_hcho','e_ora2',                     &
+     'e_nh3 ','e_hc3 ','e_hc5 ','e_hc8 ',                              &
+     'e_eth ','e_co  ','e_ol2 ','e_olt ','e_oli ','e_tol ','e_xyl ',   &
+!Azimeh here is more 14 ENAME for RACM2
+     'e_ace ','e_phen','e_macr','e_moh ','e_gly ','e_ben ','e_act ',   &
+     'e_mgly','e_mvk ','e_dien','e_mek ','e_xyo ','e_acd ','e_bald',   &
+!Azimeh
+     'e_ket ','e_csl ','e_iso ','e_ch4','e_pm25i','e_pm25j',                   &
+     'e_so4i','e_so4j','e_no3i','e_no3j','e_orgi','e_orgj','e_eci',    &
+     'e_ecj','e_pm10'/
+
 ! WARNING-WARNING-WARNING - Order sensitive in gas-phase species emission processing: 9/27/10
 ! Any new gas-phase species (i.e. hc16 or ch4) needs to be included in binary
 ! file before PM2.5 emissions. Order of binary file output is set-up in
@@ -216,14 +238,13 @@
 ! binary file reads is significant in that subroutine as well.
 
      DATA NAM2EM /  &
-       'CO', 'NOX', 'SO2', 'NH3','HC01','HC02','HC03','HC04','HC05',    &
+     'CO', 'NOX', 'SO2', 'NH3','HC01','HC02','HC03','HC04','HC05',    &
      'HC06','HC07','HC08','HC09','HC10','HC12','HC13','HC14','HC15',    &
      'HC16','HC17','HC18','HC19','HC20','HC21','HC22','HC23','HC24',    &
      'HC25','HC26','HC27','HC28','HC29','HC31','HC32','HC33','HC34',    &
      'HC36','HC37','HC38','HC39','HC40','HC41','HC42','HC43','HC44',    &
      'HC45','HC46','HC47','HC48','HC49','PM01','PM02','PM03','PM04',    &
      'PM05','PM10-PRI'/
-
 
      DATA NAMINF /'VOC       ','NOX       ','CO        ','SO2       ',  &
        'PM10-PRI  ','PM25-PRI  ','NH3       '/
@@ -243,8 +264,8 @@
      DATA NAMPM2 /'PMFINE','PSO4','PNO3','POC','PEC','PNCOM','PNH4','PAL', &
        'PCA','PFE','PH2O','PMG','PMOTHR','PK','PMN','PCL','PNA','PTI','PSI'/
 
-      DATA POINDIR / '../../2011/point/' /
-      DATA AREADIR / '../../2011/' /
+      DATA POINDIR /'/global/scratch/azare/DATA/NEI_DATA/2011/emissions_data_2011/point/' /
+      DATA AREADIR /'/global/scratch/azare/DATA/NEI_DATA/2011/emissions_data_2011/' /
 
 !
 !
@@ -254,8 +275,11 @@
 !
 ! Elevation at grid cell top (m)
 !
-     DATA ZFA/    0.,   50.,  100.,  160.,  230.,  300.,  380.,  470.,  590.,  720.,             &
+     DATA ZFA/    0.,   50.,  100.,  160.,  230.,  300.,  380.,  470.,  590.,  720. ,  &
                 850., 1000., 1200., 1400., 1600., 1800., 2000., 2250., 2500., 2750.              /
+
+
+!Azimeh:if KX=7        DATA ZFA/    0.,   50.,  124.,  220.,  330., 450.,  590.,  720. / !,  &
 
      DATA REFWZ/0.,16.8,50.5,84.3,127.,170.,256.,343.,476.,610.,791., &
       883.,975.,1160.,1350.,1644.,1943.,2252.,2677.,3010.,3350./
@@ -294,17 +318,18 @@
 !          name  - some with units.  The fields are basically SAPRAC emissions that are being converted to RADM2 emissions input.
 !
 !
-! Speciation profile for AL emissions into RADM2, SAM and GF 6/17/04
+!* Speciation profile for AL emissions into RADM2, SAM and GF 6/17/04
+! Azimeh The list is modified to speciation for RACM2 
 ! CO        e_co                      1.00            28         1
 ! NOX       e_no                      1.00            46         1
 ! SO2       e_so2                     1.00            64         1
 ! NH3       e_nh3                     1.00            17         1
 ! HC01      e_ch4                     1.00            00         Methane
 ! HC02      e_eth                     1.00            00         Ethane  kOH<500 /ppm/min
-! HC03      e_hc3                     1.00            00         Alkane 500<kOH<2500 exclude(C3H8,C2H2,ethanol,acids)
+! HC03      e_hc3                     1.11            00         Alkane500<kOH<2500 exclude(C3H8,C2H2,ethanol,acids)
 ! HC04      e_hc3                     1.11            00         Alkane 2500<kOH<5000 exlude(butanes)
 ! HC05      e_hc5                     0.97            00         Alkane 5000<kOH<10000 exlude(pentanes)
-! HC06      e_hc8                     1.00            00         Alkane kOH>10000 exclude(ethylene glycol)
+! HC06      e_hc8                     0.94            00         Alkane kOH>10000 exclude(ethylene glycol)
 ! HC07      e_ol2                     1.00            00         Ethylene
 ! HC08      e_olt                     1.00            00         Alkene kOH <20000 /ppm/min
 ! HC09      e_oli                     1.00            00         Alkene kOH >20000 /ppm/min exclude(dienes,styrenes)
@@ -312,38 +337,36 @@
 ! HC12      e_tol                     1.00            00         Aromatic kOH <20000 /ppm/min exclude(benzene and toluene)
 ! HC13      e_xyl                     1.00            00         Aromatic kOH >20000 /ppm/min exclude(xylenes)
 ! HC14      e_hcho                    1.00            00         Formaldehyde
-! HC15      e_ald                     1.00            00         Acetaldehyde
+! HC15      e_acd                     1.00            00        Acetaldehyde
 ! HC16      e_ald                     1.00            00         Higher aldehydes
-! HC17      e_ald                     1.00            00         Benzaldehyde
-! HC18      e_ket                     0.33            00         Acetone
-! HC19      e_ket                     1.61            00         Methylethyl ketone
+! HC17      e_bald                     1.00            00        Benzaldehyde
+! HC18      e_act                     1.00            00         Acetone
+! HC19      e_mek                     1.00            00         Methylethyl ketone
 ! HC20      e_ket                     1.61            00         PRD2 SAPRAC species (aromatic ketones)
-! HC21      e_hc3                     0.40            00         Methanol
-! HC22      e_ald                     1.00            00         Glyoxal
-! HC23      e_ald                     1.00            00         Methylglyoxal
-! HC24      e_ald                     1.00            00         Biacetyl
-! HC25      e_csl                     1.00            00         Phenols
+! HC21      e_moh                     1.00            00         Methanol
+! HC22      e_gly                     1.00            00         Glyoxal
+! HC23      e_mgly                     1.00            00         Methylglyoxal
+! HC24      e_mgly                     1.00            00         Biacetyl
+! HC25      e_phen                     1.00            00         Phenols
 ! HC26      e_csl                     1.00            00         Cresols
-! HC27      e_ald                     0.50            00         Methacrolein
-! HC27      e_olt                     0.50            00         Methacrolein
-! HC28      e_ket                     0.50            00         Methylvinyl ketone
-! HC28      e_olt                     0.50            00         Methylvinyl ketone
+! HC27     e_macr                     1.00            00         Methacrolein
+! HC28      e_mvk                      1.00            00   Methylvinyl ketone
 ! HC29      e_ket                     1.00            00         IPRD SAPRAC species (>C4 unsaturated aldehydes)
 ! HC31      e_ora2                    1.00            00         Acetic Acid
 ! HC32      e_ora2                    1.00            00         >C2 Acids  (SAPRC PACD species)
 ! HC33      e_csl                     1.00            00         Xylenols  (SAPRC-11 species)
 ! HC34      e_csl                     1.00            00         Catechols  (SAPRC-11 species)
 ! HC36      e_olt                     1.00            00         Propylene
-! HC37      e_hc3                     0.40            00         Acetylene
-! HC38      e_tol                     0.29            00         Benzene
+! HC37      e_ace                     1.00            00         Acetylene
+! HC38      e_ben                     0.29            00         Benzene
 ! HC39      e_hc3                     1.11            00         Butanes
 ! HC40      e_hc5                     0.97            00         Pentanes
 ! HC41      e_tol                     1.00            00         Toluene
-! HC42      e_xyl                     1.00            00         m-Xylene
-! HC43      e_xyl                     1.00            00         p-Xylene
+! HC42      e_xyo                     0.25            00         m-Xylene
+! HC43      e_xyo                     0.75            00         p-Xylene
 ! HC44      e_xyl                     1.00            00         o-Xylene
 ! HC45      e_hc3                     0.57            00         Propane
-! HC46      e_oli                     1.00            00         Dienes
+! HC46      e_dien                     1.00            00         Dienes
 ! HC47      e_olt                     1.00            00         Styrenes
 ! HC47      e_tol                     1.00            00         Styrenes
 ! HC48      e_hc3                     1.20            00         Ethanol
@@ -364,32 +387,54 @@
        'CO       ','NOX      ','SO2      ','NH3      ','HC01     ','HC02     ','HC03     ','HC04     ','HC05     ',  &
        'HC06     ','HC07     ','HC08     ','HC09     ','HC10     ','HC12     ','HC13     ','HC14     ',  &
        'HC15     ','HC16     ','HC17     ','HC18     ','HC19     ','HC20     ','HC21     ','HC22     ',  &
-       'HC23     ','HC24     ','HC25     ','HC26     ','HC27     ','HC27     ','HC28     ','HC28     ',  &
+       'HC23     ','HC24     ','HC25     ','HC26     ','HC27     ','HC28     ',  &
        'HC29     ','HC31     ','HC32     ','HC33     ','HC34     ','HC36     ','HC37     ','HC38     ',  &
        'HC39     ','HC40     ','HC41     ','HC42     ','HC43     ','HC44     ','HC45     ','HC46     ',  &
        'HC47     ','HC47     ','HC48     ','HC49     ','PM01     ','PM01     ','PM02     ','PM02     ',  &
        'PM03     ','PM03     ','PM04     ','PM04     ','PM05     ','PM05     ','PM10-PRI '/
 
-     DATA NAMRAD /  &
-       'e_co     ','e_no     ','e_so2    ','e_nh3    ','e_ch4    ','e_eth    ','e_hc3    ','e_hc3    ','e_hc5    ',  &
-       'e_hc8    ','e_ol2    ','e_olt    ','e_oli    ','e_iso    ','e_tol    ','e_xyl    ','e_hcho   ',  &
-       'e_ald    ','e_ald    ','e_ald    ','e_ket    ','e_ket    ','e_ket    ','e_hc3    ','e_ald    ',  &
-       'e_ald    ','e_ald    ','e_csl    ','e_csl    ','e_ald    ','e_olt    ','e_ket    ','e_olt    ',  &
-       'e_ket    ','e_ora2   ','e_ora2   ','e_csl    ','e_csl    ','e_olt    ','e_hc3    ','e_tol    ',  &
-       'e_hc3    ','e_hc5    ','e_tol    ','e_xyl    ','e_xyl    ','e_xyl    ','e_hc3    ','e_oli    ',  &
-       'e_olt    ','e_tol    ','e_hc3    ','e_hc8    ','e_pm25i  ','e_pm25j  ','e_so4i   ','e_so4j   ',  &
-       'e_no3i   ','e_no3j   ','e_orgi   ','e_orgj   ','e_eci    ','e_ecj    ','e_pm10   '/
+!Azimeh: modified based on the list above:     DATA NAMRAD /  &
+!       'e_co     ','e_no     ','e_so2    ','e_nh3    ','e_ch4    ','e_eth    ','e_hc3    ','e_hc3    ','e_hc5    ',  &
+!       'e_hc8    ','e_ol2    ','e_olt    ','e_oli    ','e_iso    ','e_tol    ','e_xyl    ','e_hcho   ',  &
+!       'e_ald    ','e_ald    ','e_ald    ','e_ket    ','e_ket    ','e_ket    ','e_hc3    ','e_ald    ',  &
+!       'e_ald    ','e_ald    ','e_csl    ','e_csl    ','e_ald    ','e_olt    ','e_ket    ','e_olt    ',  &
+!       'e_ket    ','e_ora2   ','e_ora2   ','e_csl    ','e_csl    ','e_olt    ','e_hc3    ','e_tol    ',  &
+!       'e_hc3    ','e_hc5    ','e_tol    ','e_xyl    ','e_xyl    ','e_xyl    ','e_hc3    ','e_oli    ',  &
+!       'e_olt    ','e_tol    ','e_hc3    ','e_hc8    ','e_pm25i  ','e_pm25j  ','e_so4i   ','e_so4j   ',  &
+!       'e_no3i   ','e_no3j   ','e_orgi   ','e_orgj   ','e_eci    ','e_ecj    ','e_pm10   '/
+!
 
-     DATA FAC /  &
-              1.00,       1.00,       1.00,       1.00,       1.00,       1.00,       1.00,       1.11,       0.97,  &
-              1.00,       1.00,       1.00,       1.00,       1.00,       1.00,       1.00,       1.00,  &
-              1.00,       1.00,       1.00,       0.33,       1.61,       1.61,       0.40,       1.00,  &
-              1.00,       1.00,       1.00,       1.00,       0.50,       0.50,       0.50,       0.50,  &
-              1.00,       1.00,       1.00,       1.00,       1.00,       1.00,       0.40,       0.29,  &
-              1.11,       0.97,       1.00,       1.00,       1.00,       1.00,       0.57,       1.00,  &
-              1.00,       1.00,       1.20,       1.14,       0.20,       0.80,       0.20,       0.80,  &
-              0.20,       0.80,       0.20,       0.80,       0.20,       0.80,       1.00/
+ DATA NAMRAD /  &
+       'e_co     ','e_no     ','e_so2    ','e_nh3    ','e_ch4   ','e_eth      ','e_hc3    ','e_hc3    ','e_hc5    ',  &
+       'e_hc8    ','e_ol2    ','e_olt    ','e_oli    ','e_iso   ','e_tol      ','e_xyl    ','e_hcho   ',  &
+       'e_acd    ','e_ald    ','e_bald   ','e_act    ','e_mek   ','e_ket      ','e_moh    ','e_gly    ',  &
+       'e_mgly   ','e_mgly   ','e_phen   ','e_csl    ','e_macr  ','e_mvk      ',  &
+       'e_ket    ','e_ora2   ','e_ora2   ','e_csl    ','e_csl   ','e_olt      ','e_ace    ','e_ben    ',  &
+       'e_hc3    ','e_hc5    ','e_tol    ','e_xyo    ','e_xyo   ','e_xyl      ','e_hc3    ','e_dien    ',  &
+       'e_olt    ','e_tol    ','e_hc3    ','e_hc8    ','e_pm25i ','e_pm25j    ','e_so4i   ','e_so4j   ',  &
+       'e_no3i   ','e_no3j   ','e_orgi   ','e_orgj   ','e_eci   ','e_ecj      ','e_pm10   '/
 
+!Azimeh:modified based on the list above:     DATA FAC /  &
+!              1.00,       1.00,       1.00,       1.00,       1.00,       1.00,       1.00,       1.11,       0.97,  &
+!              1.00,       1.00,       1.00,       1.00,       1.00,       1.00,       1.00,       1.00,  &
+!              1.00,       1.00,       1.00,       0.33,       1.61,       1.61,       0.40,       1.00,  &
+!              1.00,       1.00,       1.00,       1.00,       0.50,       0.50,       0.50,       0.50,  &
+!              1.00,       1.00,       1.00,       1.00,       1.00,       1.00,       0.40,       0.29,  &
+!              1.11,       0.97,       1.00,       1.00,       1.00,       1.00,       0.57,       1.00,  &
+!              1.00,       1.00,       1.20,       1.14,       0.20,       0.80,       0.20,       0.80,  &
+!              0.20,       0.80,       0.20,       0.80,       0.20,       0.80,       1.00/
+
+ DATA FAC /  &
+             1.00, 1.00, 1.00, 1.00, 1.00, 1.00, 1.11, 1.11, 0.97,  &
+             0.94, 1.00, 1.00, 1.00, 1.00, 1.00, 1.00, 1.00,  &
+             1.00, 1.00, 1.00, 1.00, 1.00, 1.61, 1.00, 1.00,  &
+             1.00, 1.00, 1.00, 1.00, 1.00, 1.00, 1.00, 1.00,  &
+             1.00, 1.00, 1.00, 1.00, 1.00, 0.29, 1.11, 0.97,  &
+             1.00, 0.25, 0.75, 1.00, 0.57, 1.00, 1.00, 1.00,  &
+             1.20, 1.14, 0.20, 0.80, 0.20, 0.80, 0.20, 0.80,  &
+             0.20, 0.80, 0.20, 0.80, 1.00/
+
+!Azimeh:modified based on the list above
      DATA MWT /  &
                 28,         46,         64,         17,         00,         00,         00,         00,         00,  &
                 00,         00,         00,         00,         00,         00,         00,         00,  &
@@ -397,8 +442,8 @@
                 00,         00,         00,         00,         00,         00,         00,         00,  &
                 00,         00,         00,         00,         00,         00,         00,         00,  &
                 00,         00,         00,         00,         00,         00,         00,         00,  &
-                00,         00,         00,         00,         01,         01,         01,         01,  &
-                00,         00,         01,         01,         01,         01,         01/
+                00,         00,         01,         01,         01,         01,         01,         01,  &
+                01,         01,         01,         01,         01/
 
 
      CONTAINS
@@ -567,9 +612,7 @@
 ! apportion 4km grid emissions into wrf-27km grids by simple grid dumping
           DO I=1,IX
           DO J=1,JX
-            WRITE(*,*) "Calling llxy with lat, lon = ", XLAT(I,J), XLON(I,J)
             CALL LLXY(XLAT(I,J),XLON(I,J),XX,YY)
-            WRITE(*,*) "llxy returned = ", XX, YY
 !            WRITE(LDEV,*)'i,j,lat,lon,x,y= ',I,J,XLAT(I,J),XLON(I,J),XX,YY
             IF(XX .GE. 1 .AND. XX.LE.IX2 .AND. YY.GE.1 .AND. YY.LE.JX2) THEN
               I2=INT(XX)
@@ -845,21 +888,16 @@
 !     Calculate total and max
 !     EMAX=-1.E25
 !     ETOT=0.
-     WRITE(*,*) "EMSUM ETOT, EMAX = ", ETOT, EMAX
-
      DO I=1,IX2
      DO J=1,JX2
        ETOT=ETOT+EM2D(I,J)
        IF(EM2D(I,J).GT.EMAX)THEN
-         WRITE(*,*) "EMSUM EM2D(i,j) = ", I,J,EM2D(I,J)
          EMAX=EM2D(I,J)
          IEMAX=I
          JEMAX=J
        ENDIF
      ENDDO
      ENDDO
-
-     WRITE(*,*) "EMSUM EMAX at end = ", EMAX
 
      RETURN
      END SUBROUTINE  EMSUM
@@ -943,9 +981,6 @@
 !
 !-----------------------------------------------------------------------
 !
-     WRITE(*,'(A, F12.2, F12.2)') "MAPCF XI, XJ = ", XI, XJ
-     WRITE(*,'(A, F12.2, F12.2, F12.2, F12.2, I4)') "MAPCF CLAT1, CLAT2, XLATC, XLONC, IPROJ = ", CLAT1, CLAT2, XLATC, XLONC, IPROJ
-
      XN = 0.
 !  9/5/03 Modified for more general Lambert Conformal with 2 standard parallels,CLAT1,CLAT2
      PSI1=CLAT1
@@ -1060,8 +1095,6 @@
         XLAT = POLE-PSX
         ENDIF
      ENDIF
-
-    WRITE(*,'(A, F12.2, F12.2, F12.2, F12.2, F12.2)') "MAPCF XLAT, POLE, PSI1, CEL1, CEL2 = ", XLAT, POLE, PSI1, CEL1, CEL2
 !
 !     CALCULATIONS FOR MERCATOR LAT, LONG AND MAP SCALES...
 !
@@ -1142,7 +1175,6 @@
            RR =  CELL
            C2=REKM/TAN(PSI1)
 !     WRITE(*,*)' CLAT1=CLAT2,IPROJ=1'
-           write(*,*) "llxy cell, rr, c2 = ", cell, rr, c2
            ELSE
            CELL = REKM*SIN(PSI1)/XN
            CELL2 = CELL/(TAN(PSI1/2.)**XN)
@@ -1163,7 +1195,6 @@
      YY = RR*SIN(XXL)+C2
      XI = FLOAT(IL+1)/2.+XX/DS
      YJ = FLOAT(JL+1)/2.+YY/DS
-     write(*,*) "llxy xi, yj, il, jl, ds = ", xi, yj, il, jl, ds
      IF(INEST1.EQ.1)THEN
      XI=1.+(XI-XNESSTR)*DXBIGDO/DX
      YJ=1.+(YJ-YNESSTR)*DXBIGDO/DX
