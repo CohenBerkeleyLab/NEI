@@ -254,8 +254,8 @@
      DATA NAMPM2 /'PMFINE','PSO4','PNO3','POC','PEC','PNCOM','PNH4','PAL', &
        'PCA','PFE','PH2O','PMG','PMOTHR','PK','PMN','PCL','PNA','PTI','PSI'/
 
-      DATA POINDIR /'/global/scratch/azare/DATA/NEI_DATA/2011/emissions_data_2011/point/' /
-      DATA AREADIR /'/global/scratch/azare/DATA/NEI_DATA/2011/emissions_data_2011/' /
+      DATA POINDIR /'../../2011/point/' /
+      DATA AREADIR /'../../2011/' /
 
 !
 !
